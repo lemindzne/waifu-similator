@@ -359,11 +359,23 @@ class Waifu(commands.Cog):
 
     @commands.command()
     async def useitem(self, ctx, *, item_name: str):
-        # Kiểm tra số lượng item trong DB (An tự viết thêm hàm get_item_count nhé)
-        # Nếu có item:
-        await self.bot.db.update_item_quantity(ctx.author.id, item_name, -1)
-        new_lv, new_exp = await self.bot.db.update_waifu_exp(ctx.author.id, 100) # Cộng 100 exp
-        await ctx.send(f"✨ Bạn đã dùng **{item_name}**! Waifu hiện tại đạt Level {new_lv} ({new_exp} EXP).")
+        user_id = ctx.author.id
+        # 1. Lấy thông tin waifu đang active
+        money, active, _, level, exp = await self.bot.db.get_user_full(user_id)
+        
+        if not active:
+            return await ctx.send("❌ Bạn cần chọn một Waifu đại diện trước khi dùng vật phẩm!")
+    
+        # 2. Kiểm tra và trừ item (giả sử item là 'ExpBook')
+        # Lưu ý: An nên check số lượng item trước khi trừ nhé
+        await self.bot.db.update_item_quantity(user_id, item_name, -1)
+        
+        # 3. Gọi đúng tên hàm trong database.py và truyền thêm active (tên waifu)
+        result = await self.bot.db.update_waifu_exp(user_id, active, 100) 
+        
+        if result:
+            new_lv, new_exp = result
+            await ctx.send(f"✨ Bạn đã dùng **{item_name}** cho **{active}**! Hiện đạt Level {new_lv} ({new_exp} EXP).")
         
     @commands.command(aliases=['p'])
     async def profile(self, ctx):
