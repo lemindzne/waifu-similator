@@ -214,3 +214,8 @@ class BotDatabase:
             sql = "SELECT level, exp FROM inventory WHERE user_id = ? AND waifu_name = ?"
             async with db.execute(sql, (user_id, waifu_name)) as cursor:
                 return await cursor.fetchone()
+
+    async def update_skill_cooldown(self, user_id, time_str):
+    async with aiosqlite.connect(self.db_path) as db:
+        await db.execute("UPDATE users SET last_skill_use = ? WHERE user_id = ?", (time_str, user_id))
+        await db.commit()
