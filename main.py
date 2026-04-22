@@ -15,7 +15,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Gắn database vào bot để dùng ở các Cogs
-bot.db = BotDatabase("database.db")
+bot.db = BotDatabase("/app/data/database.db")
 
 async def load_extensions():
     for filename in os.listdir('./cogs'):
