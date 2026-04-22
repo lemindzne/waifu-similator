@@ -1,4 +1,5 @@
 import aiosqlite
+import shutil
 import os
 
 class BotDatabase:
