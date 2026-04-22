@@ -357,25 +357,56 @@ class Waifu(commands.Cog):
         
         await ctx.send(embed=embed)
 
-    @commands.command()
-    async def useitem(self, ctx, *, item_name: str):
+    @commands.command(name="item")
+    async def item(self, ctx, item_id: str = None, *, waifu_name: str = None):
+        if not item_id or not waifu_name:
+            return await ctx.send("⚠️ Cách dùng: `!item [ID_Vật_Phẩm] [Tên_Waifu]`\nVí dụ: `!item Stone Mahiru`")
+
         user_id = ctx.author.id
-        # 1. Lấy thông tin waifu đang active
-        money, active, _, level, exp = await self.bot.db.get_user_full(user_id)
         
-        if not active:
-            return await ctx.send("❌ Bạn cần chọn một Waifu đại diện trước khi dùng vật phẩm!")
-    
-        # 2. Kiểm tra và trừ item (giả sử item là 'ExpBook')
-        # Lưu ý: An nên check số lượng item trước khi trừ nhé
-        await self.bot.db.update_item_quantity(user_id, item_name, -1)
+        # 1. Kiểm tra vật phẩm trong kho (user_items)
+        async with aiosqlite.connect(self.bot.db.db_path) as db:
+            async with db.execute(
+                "SELECT quantity FROM user_items WHERE user_id = ? AND item_name = ?", 
+                (user_id, item_id)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if not row or row[0] <= 0:
+                    return await ctx.send(f"❌ Bạn không có `{item_id}` trong kho đồ!")
+
+        # 2. Tìm Waifu trong inventory (hỗ trợ tìm tên gần đúng)
+        inventory = await self.bot.db.get_all_waifus(user_id)
+        target_waifu = next((w['waifu_name'] for w in inventory if waifu_name.lower() in w['waifu_name'].lower()), None)
         
-        # 3. Gọi đúng tên hàm trong database.py và truyền thêm active (tên waifu)
-        result = await self.bot.db.update_waifu_exp(user_id, active, 100) 
+        if not target_waifu:
+            return await ctx.send(f"❌ Bạn không sở hữu Waifu nào tên `{waifu_name}`!")
+
+        # 3. Cấu hình lượng EXP cho từng loại đá/sách
+        exp_values = {
+            "ExpBook": 100,
+            "Gift": 250,
+            "Stone": 500  # <--- Stone của An ở đây
+        }
         
+        gain = exp_values.get(item_id)
+        if gain is None:
+            return await ctx.send(f"❌ Vật phẩm `{item_id}` không thể dùng để tăng cấp!")
+
+        # 4. Thực hiện trừ item và cộng EXP vào DB
+        await self.bot.db.update_item_quantity(user_id, item_id, -1)
+        result = await self.bot.db.update_waifu_exp(user_id, target_waifu, gain)
+
         if result:
-            new_lv, new_exp = result
-            await ctx.send(f"✨ Bạn đã dùng **{item_name}** cho **{active}**! Hiện đạt Level {new_lv} ({new_exp} EXP).")
+            lv, xp = result
+            # Hiển thị kết quả
+            embed = discord.Embed(
+                title="✨ Sử dụng vật phẩm thành công!",
+                description=f"Đã dùng **{item_id}** (+{gain} EXP) cho **{target_waifu}**",
+                color=discord.Color.green()
+            )
+            status = f"Level: **{lv}**" + (f" | EXP: **{xp}**" if lv < 4 else " (MAX)")
+            embed.add_field(name="Trạng thái mới", value=status)
+            await ctx.send(embed=embed)
         
     @commands.command(aliases=['p'])
     async def profile(self, ctx):
