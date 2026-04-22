@@ -168,6 +168,20 @@ class BotDatabase:
                 await db.commit()
                 return new_level, new_exp
 
+    async def buy_item_db(self, user_id, item_name, price, amount):
+        total_cost = price * amount
+        async with aiosqlite.connect(self.db_path) as db:
+            # Trừ tiền
+            await db.execute("UPDATE users SET money = money - ? WHERE user_id = ?", (total_cost, user_id))
+            # Thêm/Cập nhật số lượng vật phẩm
+            await db.execute('''
+                INSERT INTO user_items (user_id, item_name, quantity) 
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id, item_name) 
+                DO UPDATE SET quantity = quantity + ?
+            ''', (user_id, item_name, amount, amount))
+            await db.commit()
+
     # Hàm quản lý Item (Mua/Dùng)
     async def update_item_quantity(self, user_id, item_name, amount):
         async with aiosqlite.connect(self.db_path) as db:
