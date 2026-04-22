@@ -4,13 +4,6 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 
-WAIFU_BUFFS = {
-    "Mahiru": {"bonus_money": 0.2},      # Mahiru: Buff tiền lương mạnh
-    "Faust": {"bonus_money": 0.15},      # Faust: Buff tiền lương khá
-    "Ganyu": {"bonus_money": 0.1},       # Ganyu: Chăm chỉ, buff tiền nhẹ
-    "Rodion": {"luck_bonus": 50},        # Rodion: Thêm tiền khi tung xu (ví dụ)
-    "Don Quixote": {"bonus_money": 0.25} # Don: Nhiệt huyết, buff tiền cực mạnh nhưng có thể thêm rủi ro?
-}
 
 class JobSelect(discord.ui.Select):
     def __init__(self, jobs, bot, active_waifu):
@@ -35,7 +28,11 @@ class JobSelect(discord.ui.Select):
 
             # 1. Lấy dữ liệu user (money, active, next_available_str)
             # Ở đây last_work_str đóng vai trò là "thời điểm được làm việc tiếp"
-            money, active, next_available_str, level, exp = await self.bot.db.get_user_full(user_id)
+            money, active, next_available_str, level, exp, last_skill_str = await self.bot.db.get_user_full(user_id)
+            bonus_multiplier = 0
+            skill_msg = ""
+            if active in BUFF_CONFIG:
+                conf = BUFF_CONFIG[active]
             now = datetime.now()
 
             # 2. KIỂM TRA HỒI CHIÊU CHUNG (Global Cooldown)
@@ -51,27 +48,44 @@ class JobSelect(discord.ui.Select):
                     )
 
             # 3. TÍNH TOÁN LƯƠNG & THỜI GIAN HỒI MỚI
-            base_cd = job_info["cd"]
-            bonus_cd = 1.0
-            # Buff giảm CD từ Faust hoặc Ganyu (giảm 20%)
-            if active in ["Faust", "Ganyu"]:
-                bonus_cd = 0.8 - ((level - 1) * 0.05)
-
-            total_wait_minutes = int((base_cd * 60) * bonus_cd)
-
-            bonus_money = 1.0
-            if active == "Mahiru": bonus_money = 1.2 
-            elif active == "Don Quixote": bonus_money = 1.15 
+            base_salary = random.randint(job_info['min'], job_info['max'])
+            bonus_multiplier = 0
+            skill_msg = ""
+    
+            # Định nghĩa cấu hình ngay tại đây cho đỡ rối
+            BUFF_CONFIG = {
+                "Mahiru": {"work_bonus": 0.2, "cd": 1},
+                "Faust": {"work_bonus": 0.15, "cd": 1},
+                "Ganyu": {"work_bonus": 0.1, "cd": 1},
+                "Don Quixote": {"work_bonus": 0.15, "cd": 3},
+                "Rodion": {"flip_luck": 0.05, "cd": 1}
+            }
+    
+            if active in BUFF_CONFIG:
+                conf = BUFF_CONFIG[active]
                 
-            level_bonus = 1 + (level * 0.02)
-
-            income = int(random.randint(job_info["min"], job_info["max"]) * bonus_money * level_bonus)
-
-            # Tính mốc thời gian ĐƯỢC LÀM VIỆC TIẾP theo công việc vừa chọn
-            new_next_available = now + timedelta(minutes=total_wait_minutes)
+                # Kiểm tra Cooldown Skill
+                can_use_skill = True
+                if last_skill_str:
+                    ready_time = datetime.strptime(last_skill_str, '%Y-%m-%d %H:%M:%S')
+                    if now < ready_time:
+                        can_use_skill = False
+                        skill_msg = f"\n⏳ Skill của **{active}** đang hồi chiêu."
+    
+                if can_use_skill:
+                    if "work_bonus" in conf:
+                        bonus_multiplier = conf["work_bonus"] * level
+                        skill_msg = f"\n✨ **{active}** kích hoạt Skill: **+{int(bonus_multiplier*100)}%** tiền!"
+                        
+                        # Tính ngày hồi chiêu (Don 3 ngày, còn lại 1 ngày)
+                        days_add = conf.get("cd", 1)
+                        next_ready = (now + timedelta(days=days_add)).strftime('%Y-%m-%d %H:%M:%S')
+                        await self.bot.db.update_skill_cooldown(user_id, next_ready)
+    
+            final_salary = int(base_salary * (1 + bonus_multiplier))
 
             # 4. CẬP NHẬT DATABASE
-            await self.bot.db.update_money(user_id, income)
+            await self.bot.db.update_money(user_id, final_salary)
             await self.bot.db.update_work_time(user_id, new_next_available.strftime('%Y-%m-%d %H:%M:%S'))
 
             display_h, display_m = divmod(total_wait_minutes, 60)
