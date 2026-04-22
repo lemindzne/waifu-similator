@@ -362,7 +362,7 @@ class Waifu(commands.Cog):
         # Kiểm tra số lượng item trong DB (An tự viết thêm hàm get_item_count nhé)
         # Nếu có item:
         await self.bot.db.update_item_quantity(ctx.author.id, item_name, -1)
-        new_lv, new_exp = await self.bot.db.update_exp(ctx.author.id, 100) # Cộng 100 exp
+        new_lv, new_exp = await self.bot.db.update_waifu_exp(ctx.author.id, 100) # Cộng 100 exp
         await ctx.send(f"✨ Bạn đã dùng **{item_name}**! Waifu hiện tại đạt Level {new_lv} ({new_exp} EXP).")
         
     @commands.command(aliases=['p'])
