@@ -1,7 +1,7 @@
 import aiosqlite
 
 class BotDatabase:
-    def __init__(self, db_path="database.db"):
+    def __init__(self, db_path="/app/data/database.db"):
         self.db_path = db_path
 
         if not os.path.exists(self.db_path) and os.path.exists("database.db"):
