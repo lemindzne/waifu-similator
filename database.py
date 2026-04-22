@@ -144,22 +144,21 @@ class BotDatabase:
                 
                 new_exp = row[0] + amount
                 new_level = row[1]
-                
-                # --- LOGIC GIỚI HẠN LEVEL 4 ---
                 MAX_LEVEL = 4
+
+                # Định nghĩa mốc EXP để LÊN cấp tiếp theo
+                # Lv1 cần 100 để lên Lv2 | Lv2 cần 250 để lên Lv3 | Lv3 cần 500 để lên Lv4
+                exp_requirements = {1: 1250, 2: 4000, 3: 10000}
                 
-                while new_exp >= (new_level * 100):
-                    if new_level >= MAX_LEVEL:
-                        new_exp = 0 # Nếu đạt max level thì reset exp dư hoặc giữ nguyên tùy An
-                        break
-                    new_exp -= (new_level * 100)
+                # Vòng lặp kiểm tra xem có lên được nhiều cấp cùng lúc không
+                while new_level < MAX_LEVEL and new_exp >= exp_requirements.get(new_level, 999999):
+                    new_exp -= exp_requirements[new_level]
                     new_level += 1
                 
-                # Nếu đã ở Level 4 thì exp luôn là 0 hoặc một mốc cố định
+                # Nếu đạt Max Level thì reset EXP về 0 (hoặc giữ nguyên tùy bạn)
                 if new_level >= MAX_LEVEL:
                     new_level = MAX_LEVEL
                     new_exp = 0 
-                # ------------------------------
 
                 await db.execute(
                     "UPDATE inventory SET exp = ?, level = ? WHERE user_id = ? AND waifu_name = ?",
