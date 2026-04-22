@@ -4,6 +4,14 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 
+WAIFU_BUFFS = {
+    "Mahiru": {"bonus_money": 0.2},      # Mahiru: Buff tiền lương mạnh
+    "Faust": {"bonus_money": 0.15},      # Faust: Buff tiền lương khá
+    "Ganyu": {"bonus_money": 0.1},       # Ganyu: Chăm chỉ, buff tiền nhẹ
+    "Rodion": {"luck_bonus": 50},        # Rodion: Thêm tiền khi tung xu (ví dụ)
+    "Don Quixote": {"bonus_money": 0.25} # Don: Nhiệt huyết, buff tiền cực mạnh nhưng có thể thêm rủi ro?
+}
+
 class JobSelect(discord.ui.Select):
     def __init__(self, jobs, bot, active_waifu):
         self.jobs = jobs
