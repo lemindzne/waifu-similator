@@ -1,4 +1,5 @@
 import aiosqlite
+import os
 
 class BotDatabase:
     def __init__(self, db_path="/app/data/database.db"):
