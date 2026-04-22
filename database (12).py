@@ -4,6 +4,10 @@ class BotDatabase:
     def __init__(self, db_path="database.db"):
         self.db_path = db_path
 
+        if not os.path.exists(self.db_path) and os.path.exists("database.db"):
+            print("Found database on GitHub, copying to Volume...")
+            shutil.copy("database.db", self.db_path)
+
     async def create_tables(self):
         async with aiosqlite.connect(self.db_path) as db:
             
