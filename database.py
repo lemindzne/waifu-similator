@@ -45,6 +45,14 @@ class BotDatabase:
                 try:
                     await db.execute(f"ALTER TABLE inventory ADD COLUMN {col[0]} {col[1]}")
                 except aiosqlite.OperationalError: pass
+
+
+            try:
+                await db.execute("ALTER TABLE users ADD COLUMN last_skill_use TEXT DEFAULT NULL")
+                print("✅ Đã nâng cấp bảng users: Thêm cột last_skill_use thành công.")
+            except aiosqlite.OperationalError:
+                # Nếu cột đã tồn tại thì bỏ qua lỗi này
+                pass
             
             await db.execute('''
                 CREATE TABLE IF NOT EXISTS user_items (
