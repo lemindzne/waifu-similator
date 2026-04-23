@@ -158,17 +158,17 @@ class Waifu(commands.Cog):
         
         self.categories = {
             "Economy 💰": {
-                "Don Quixote": {"price": 2000, "base_buff": 15, "unit": "%", "desc": "Tăng tiền khi làm việc"},
-                "Mahiru": {"price": 3000, "base_buff": 20, "unit": "%", "desc": "Tăng lương mỗi ngày"},
-                "Ganyu": {"price": 8000, "base_buff": 5, "unit": " phút", "desc": "Giảm hồi chiêu làm việc"}
+                "Don Quixote": {"price": 2000, "base_buff": 5, "unit": "%", "type": "work_money", "desc": "Tăng tiền khi làm việc"},
+                "Mahiru": {"price": 3000, "base_buff": 20, "unit": "%", "type": "work_money", "desc": "Tăng lương mỗi ngày"},
+                "Ganyu": {"price": 8000, "base_buff": 5, "unit": " phút", "type": "work_cd", "desc": "Giảm hồi chiêu làm việc"}
             },
             "Gambling 🎲": {
-                "Rodion": {"price": 5000, "base_buff": 10, "unit": "%", "desc": "Tăng tỉ lệ thắng cược"},
-                "Yumeko": {"price": 12000, "base_buff": 7, "unit": "%", "desc": "Tăng tỉ lệ thắng tất cả game"}
+                "Rodion": {"price": 5000, "base_buff": 10, "unit": "%", "type": "gamble_luck", "desc": "Tăng tỉ lệ thắng cược"},
+                "Yumeko": {"price": 12000, "base_buff": 7, "unit": "%", "type": "global_luck", "desc": "Tăng tỉ lệ thắng tất cả game"}
             },
             "Special Buff ✨": {
-                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "desc": "Giảm thời gian chờ lệnh"},
-                "Makima": {"price": 25000, "base_buff": 50, "unit": "%", "desc": "Giảm tiền phạt khi thất bại"}
+                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "type": "work_cd", "desc": "Giảm thời gian chờ lệnh"},
+                "Makima": {"price": 25000, "base_buff": 50, "unit": "%", "type": "penalty_reduction", "desc": "Giảm tiền phạt khi thất bại"}
             }
         }
         
@@ -204,7 +204,38 @@ class Waifu(commands.Cog):
         "Faust": "'Man errs, as long as he strives. 📖'",
         "Makima": "🐕 'Mọi thứ đều đang nằm trong tầm kiểm soát. Đừng lo lắng về những thất bại nhỏ nhặt.'"
     }
-        
+
+    def get_waifu_info(self, name):
+        """Hàm phụ trợ để tìm dữ liệu waifu nhanh từ dict categories"""
+        for cat in self.categories.values():
+            if name in cat:
+                return cat[name]
+        return None
+
+    def calculate_bonus(self, waifu_name, level, effect_type):
+        """
+        Hàm tính toán buff tổng quát.
+        Sử dụng: calculate_bonus("Mahiru", 2, "work_money") -> Trả về 1.2x (ví dụ)
+        """
+        info = self.get_waifu_info(waifu_name)
+        if not info or info['type'] != effect_type:
+            return 1.0 if "money" in effect_type or "luck" in effect_type else 1.0 # Default multipliers
+
+        # Công thức: base + (mỗi level tăng thêm 10% của chỉ số gốc)
+        growth = 1 + (level - 1) * 0.1
+        actual_buff = info['base_buff'] * growth
+
+        if effect_type == "work_money":
+            return 1 + (actual_buff / 100)
+        elif effect_type == "work_cd":
+            # Nếu là Ganyu (đơn vị phút), ta trả về số phút giảm. 
+            # Nếu là Faust (đơn vị %), ta trả về tỉ lệ giảm.
+            return actual_buff 
+        elif effect_type == "gamble_luck":
+            return actual_buff # Trả về số % cộng thêm vào tỉ lệ thắng
+            
+        return 1.0
+    
 
     @commands.command()
     async def shop(self, ctx):
