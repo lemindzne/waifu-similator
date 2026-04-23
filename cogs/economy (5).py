@@ -149,7 +149,7 @@ class Economy(commands.Cog):
         # Tạo Embed hiển thị trạng thái đang chờ
         waiting_embed = discord.Embed(
             title="<a:coin1:1496027671178772673> Đang Tung Xu...", # Tiêu đề sạch
-            description=f"{skill_text}\nBạn chọn: **{choice.upper()}** | Cược: **{bet:,} xu**",
+            description=f"Bạn chọn: **{choice.upper()}** | Cược: **{bet:,} xu**",
             color=discord.Color.gold()
         )
         msg = await ctx.send(embed=waiting_embed)
