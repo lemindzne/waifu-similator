@@ -75,10 +75,13 @@ class WaifuSelect(discord.ui.Select):
         exp = waifu_data['exp'] if waifu_data else 0
         
         # Tạo thanh EXP
-        max_exp = level * 100
+        exp_map = {1: 1250, 2: 4000, 3: 10000}
+        current_max_exp = exp_map.get(level, 10000)
+        
         percent = min(int((exp / max_exp) * 10), 10) if level < 4 else 10
+        
         exp_bar = "█" * percent + "░" * (10 - percent)
-        exp_text = f"{exp}/{max_exp} EXP" if level < 4 else "Đạt cấp tối đa"
+        exp_text = f"{exp}/{current_max_exp} EXP" if level < 4 else "Đạt cấp tối đa"
 
         embed = discord.Embed(title=f"💕 Waifu — {waifu_name} ⭐", color=0xff99ff)
         
@@ -461,8 +464,13 @@ class Waifu(commands.Cog):
             if img_url: embed.set_image(url=img_url)
 
             # Thanh EXP cho Waifu đại diện
-            max_exp = level * 100
-            percent = int((exp / max_exp) * 10)
+            exp_map = {1: 1250, 2: 4000, 3: 10000}
+            
+            # Lấy mốc exp cần thiết dựa trên level hiện tại, nếu max level (4) thì lấy mốc lv 3
+            current_max_exp = exp_map.get(level, 10000)
+            
+            # Tính phần trăm (giới hạn tối đa 100% để thanh bar không bị tràn)
+            percent = min(int((exp / current_max_exp) * 10), 10)
             bar = "█" * percent + "░" * (10 - percent)
             
             embed.add_field(name="❤️ Waifu đại diện", value=f"**{active}**", inline=True)
