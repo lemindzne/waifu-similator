@@ -1,6 +1,7 @@
 import discord
 import traceback
 import sys
+import aiosqlite
 from discord.ext import commands
 
 class WaifuProfileView(discord.ui.View):
