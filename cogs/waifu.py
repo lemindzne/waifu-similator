@@ -281,11 +281,10 @@ class Waifu(commands.Cog):
         
     @commands.command(aliases=['i', 'inv'])
     async def inventory(self, ctx):
-        """Xem số dư xu và các vật phẩm sở hữu"""
+        """Xem số dư xu và các vật phẩm sở hữu (hỗ trợ không phân biệt hoa thường)"""
         user_id = ctx.author.id
         
         # 1. Lấy dữ liệu từ database
-        # Giả sử hàm get_inventory trả về tất cả items (bao gồm cả waifu)
         all_items = await self.bot.db.get_inventory(user_id) 
         money, active, _ = await self.bot.db.get_user(user_id)
 
@@ -298,16 +297,16 @@ class Waifu(commands.Cog):
         embed.add_field(name="💰 Tài sản", value=f"**{money:,}** xu", inline=False)
         
         # --- Hiển thị Items (Lọc bỏ các Waifu) ---
-        # Danh sách tên các Waifu để bot biết đường mà né không hiện vào inv
-        waifu_names = ["Don Quixote", "Mahiru", "Ganyu", "Rodion", "Yumeko", "Faust", "Makima"]
+        # Chuyển tất cả tên Waifu về chữ thường để so sánh chính xác
+        waifu_names_lower = [name.lower() for name in ["Don Quixote", "Mahiru", "Ganyu", "Rodion", "Yumeko", "Faust", "Makima"]]
         
-        # Chỉ lấy những gì KHÔNG nằm trong danh sách Waifu
-        items_only = [item for item in all_items if item not in waifu_names]
+        # Lọc: Chỉ lấy những item mà tên của nó (khi viết thường) không nằm trong danh sách waifu
+        items_only = [item for item in all_items if item.lower() not in waifu_names_lower]
         
         if not items_only:
             item_list = "*Không có vật phẩm nào*"
         else:
-            # Ví dụ: • Sách Kinh Nghiệm
+            # Tạo danh sách hiển thị đẹp mắt
             item_list = "\n".join([f"• {it}" for it in items_only])
             
         embed.add_field(name="📦 Vật phẩm sở hữu", value=item_list, inline=False)
@@ -360,48 +359,60 @@ class Waifu(commands.Cog):
     @commands.command(name="item")
     async def item(self, ctx, item_id: str = None, *, waifu_name: str = None):
         if not item_id or not waifu_name:
-            return await ctx.send("⚠️ Cách dùng: `!item [ID_Vật_Phẩm] [Tên_Waifu]`\nVí dụ: `!item Stone Mahiru`")
+            return await ctx.send("⚠️ Cách dùng: `!item [ID_Vật_Phẩm] [Tên_Waifu]`\nVí dụ: `!item Gift Mahiru`")
 
         user_id = ctx.author.id
         
-        # 1. Kiểm tra vật phẩm trong kho (user_items)
+        # 1. Tạo bản đồ chuẩn hóa ID (Normalize)
+        # Giúp chuyển mọi kiểu gõ (gift, GIFT, GiFt) về đúng tên trong Database
+        standard_ids = {
+            "expbook": "ExpBook",
+            "gift": "Gift",
+            "stone": "Stone"
+        }
+        
+        # Lấy tên chuẩn từ input của An
+        normalized_id = standard_ids.get(item_id.lower())
+        
+        if not normalized_id:
+            list_valid = ", ".join([f"`{k}`" for k in standard_ids.keys()])
+            return await ctx.send(f"❌ Vật phẩm `{item_id}` không hợp lệ! Hãy dùng: {list_valid}")
+
+        # 2. Kiểm tra vật phẩm trong kho với normalized_id
         async with aiosqlite.connect(self.bot.db.db_path) as db:
             async with db.execute(
                 "SELECT quantity FROM user_items WHERE user_id = ? AND item_name = ?", 
-                (user_id, item_id)
+                (user_id, normalized_id) # Dùng tên đã chuẩn hóa ở đây
             ) as cursor:
                 row = await cursor.fetchone()
                 if not row or row[0] <= 0:
-                    return await ctx.send(f"❌ Bạn không có `{item_id}` trong kho đồ!")
+                    return await ctx.send(f"❌ Bạn không có `{normalized_id}` trong kho đồ!")
 
-        # 2. Tìm Waifu trong inventory (hỗ trợ tìm tên gần đúng)
+        # 3. Tìm Waifu (cũng cho phép tìm không phân biệt hoa thường)
         inventory = await self.bot.db.get_all_waifus(user_id)
         target_waifu = next((w['waifu_name'] for w in inventory if waifu_name.lower() in w['waifu_name'].lower()), None)
         
         if not target_waifu:
             return await ctx.send(f"❌ Bạn không sở hữu Waifu nào tên `{waifu_name}`!")
 
-        # 3. Cấu hình lượng EXP cho từng loại đá/sách
+        # 4. Lượng EXP tương ứng
         exp_values = {
             "ExpBook": 100,
             "Gift": 250,
-            "Stone": 500  # <--- Stone của An ở đây
+            "Stone": 500
         }
         
-        gain = exp_values.get(item_id)
-        if gain is None:
-            return await ctx.send(f"❌ Vật phẩm `{item_id}` không thể dùng để tăng cấp!")
+        gain = exp_values.get(normalized_id)
 
-        # 4. Thực hiện trừ item và cộng EXP vào DB
-        await self.bot.db.update_item_quantity(user_id, item_id, -1)
+        # 5. Thực hiện cập nhật
+        await self.bot.db.update_item_quantity(user_id, normalized_id, -1)
         result = await self.bot.db.update_waifu_exp(user_id, target_waifu, gain)
 
         if result:
             lv, xp = result
-            # Hiển thị kết quả
             embed = discord.Embed(
                 title="✨ Sử dụng vật phẩm thành công!",
-                description=f"Đã dùng **{item_id}** (+{gain} EXP) cho **{target_waifu}**",
+                description=f"Đã dùng **{normalized_id}** (+{gain} EXP) cho **{target_waifu}**",
                 color=discord.Color.green()
             )
             status = f"Level: **{lv}**" + (f" | EXP: **{xp}**" if lv < 4 else " (MAX)")
