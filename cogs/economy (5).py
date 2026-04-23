@@ -30,6 +30,8 @@ class JobSelect(discord.ui.Select):
             money, active, next_available_str, level, exp = await self.bot.db.get_user_full(user_id)
             now = datetime.now()
 
+            active_waifu_name = active
+
             # 2. KIỂM TRA HỒI CHIÊU CHUNG (Global Cooldown)
             if next_available_str:
                 next_available = datetime.strptime(next_available_str, '%Y-%m-%d %H:%M:%S')
@@ -43,21 +45,31 @@ class JobSelect(discord.ui.Select):
                     )
 
             # 3. TÍNH TOÁN LƯƠNG & THỜI GIAN HỒI MỚI
-            base_cd = job_info["cd"]
-            bonus_cd = 1.0
-            # Buff giảm CD từ Faust hoặc Ganyu (giảm 20%)
-            if active in ["Faust", "Ganyu"]:
-                bonus_cd = 0.8 - ((level - 1) * 0.05)
-
-            total_wait_minutes = int((base_cd * 60) * bonus_cd)
-
-            bonus_money = 1.0
-            if active == "Mahiru": bonus_money = 1.2 
-            elif active == "Don Quixote": bonus_money = 1.15 
-                
+            waifu_cog = self.bot.get_cog("Waifu")
+            
+            # 1. Tính toán Tiền lương
+            # Lấy hệ số nhân tiền (vd: Mahiru Lv1 là 1.2)
+            money_mult = waifu_cog.calculate_bonus(active, level, "work_money")
+            # Thêm level người chơi (giữ nguyên logic cũ của bạn)
             level_bonus = 1 + (level * 0.02)
+            
+            income = int(random.randint(job_info["min"], job_info["max"]) * money_mult * level_bonus)
 
-            income = int(random.randint(job_info["min"], job_info["max"]) * bonus_money * level_bonus)
+            # 2. Tính toán Thời gian hồi (CD)
+            base_cd_minutes = job_info["cd"] * 60
+            cd_buff_value = waifu_cog.calculate_bonus(active, level, "work_cd")
+            
+            # Kiểm tra xem Waifu đó giảm theo phút hay theo %
+            info = waifu_cog.get_waifu_info(active)
+            if info and info['unit'] == " phút":
+                # Giảm trực tiếp số phút (vd: Ganyu)
+                total_wait_minutes = max(1, int(base_cd_minutes - cd_buff_value))
+                bonus_cd_display = f"{int(cd_buff_value)}p"
+            else:
+                # Giảm theo % (vd: Faust hoặc mặc định 1.0 nếu không có buff)
+                # cd_buff_value lúc này là tỉ lệ (vd: 0.2)
+                total_wait_minutes = int(base_cd_minutes * (1 - cd_buff_value))
+                bonus_cd_display = f"{int(cd_buff_value * 100)}%"
 
             # Tính mốc thời gian ĐƯỢC LÀM VIỆC TIẾP theo công việc vừa chọn
             new_next_available = now + timedelta(minutes=total_wait_minutes)
@@ -72,7 +84,7 @@ class JobSelect(discord.ui.Select):
             embed = discord.Embed(title="✅ Nhận việc thành công!", color=discord.Color.green())
             embed.add_field(name="Công việc", value=job_name)
             embed.add_field(name="Tiền lương", value=f"{income:,} xu")
-            embed.add_field(name="Thời gian nghỉ", value=f"{cd_text} (Đã giảm {int((1-bonus_cd)*100)}%)")
+            embed.add_field(name="Thời gian nghỉ", value=f"{cd_text} (Đã giảm {bonus_cd_display})")
             embed.set_footer(text=f"Đã áp dụng buff từ: {active if active else 'Không có'}")
 
             await interaction.response.edit_message(embed=embed, view=None)
