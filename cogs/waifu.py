@@ -186,6 +186,21 @@ class Waifu(commands.Cog):
         "Makima": "🐕 'Mọi thứ đều đang nằm trong tầm kiểm soát. Đừng lo lắng về những thất bại nhỏ nhặt.'"
     }
 
+        self.waifu_info = {
+            "Mahiru": {
+                "desc": "Thiên sứ nhà bên đảm đang, dịu dàng.",
+                "image": "https://i.imgur.com/8nS8z4p.png" # Thay link ảnh thật của An vào
+            },
+            "Don Quixote": {
+                "desc": "Hiệp sĩ nhiệt huyết từ Limbus Company.",
+                "image": "https://i.imgur.com/8nS8z4p.png"
+            },
+            "Ganyu": {
+                "desc": "Thư ký tận tụy của Nguyệt Hải Đình.",
+                "image": "https://i.imgur.com/8nS8z4p.png"
+            }
+        }
+
     def get_waifu_info(self, name):
         """Hàm phụ trợ để tìm dữ liệu waifu nhanh từ dict categories"""
         for cat in self.categories.values():
