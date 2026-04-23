@@ -148,7 +148,7 @@ class Waifu(commands.Cog):
                 "Yumeko": {"price": 12000, "base_buff": 7, "unit": "%", "type": "global_luck"}
             },
             "Special Buff ✨": {
-                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "type": "work_cd",
+                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "type": "work_cd"},
                 "Makima": {"price": 25000, "base_buff": 50, "unit": "%", "type": "penalty_reduction"}
             }
         }
