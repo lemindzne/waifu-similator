@@ -56,13 +56,13 @@ class JobSelect(discord.ui.Select):
             if info and info['unit'] == " phút":
                 # Trường hợp Ganyu: Trừ thẳng số phút
                 total_wait_minutes = max(1, base_cd_min - int(cd_buff_val))
-                bonus_display = f"{int(cd_buff_val)}p"
+                bonus_cd_display = f"{int(cd_buff_val)}p"
             elif info and info['unit'] == "%":
                 # Trường hợp Faust: Giảm theo tỷ lệ %
                 # Ví dụ: 20% thì nhân với (1 - 0.2)
                 reduction_percent = cd_buff_val / 100
                 total_wait_minutes = max(1, int(base_cd_min * (1 - reduction_percent)))
-                bonus_display = f"{int(cd_buff_val)}%"
+                bonus_cd_display = f"{int(cd_buff_val)}%"
             else:
                 # Không có waifu buff CD
                 total_wait_minutes = base_cd_min
