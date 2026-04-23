@@ -122,7 +122,7 @@ class ShopView(discord.ui.View):
         embed = discord.Embed(title="🛒 Cửa hàng Waifu", color=discord.Color.pink())
         for cat, content in self.categories.items():
             for name, info in content.items():
-                embed.add_field(name=f"{name} — {info['price']:,} xu", value=info['desc'], inline=False)
+                embed.add_field(name=f"{name} — {info['price']:,} xu", inline=False)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Shop Vật phẩm 🎁", style=discord.ButtonStyle.success)
@@ -139,17 +139,17 @@ class Waifu(commands.Cog):
         
         self.categories = {
             "Economy 💰": {
-                "Don Quixote": {"price": 2000, "base_buff": 5, "unit": "%", "type": "work_money", "desc": "Tăng tiền khi làm việc"},
-                "Mahiru": {"price": 3000, "base_buff": 20, "unit": "%", "type": "work_money", "desc": "Tăng lương mỗi ngày"},
-                "Ganyu": {"price": 8000, "base_buff": 5, "unit": " phút", "type": "work_cd", "desc": "Giảm hồi chiêu làm việc"}
+                "Don Quixote": {"price": 2000, "base_buff": 5, "unit": "%", "type": "work_money"},
+                "Mahiru": {"price": 3000, "base_buff": 20, "unit": "%", "type": "work_money"},
+                "Ganyu": {"price": 8000, "base_buff": 5, "unit": " phút", "type": "work_cd"}
             },
             "Gambling 🎲": {
-                "Rodion": {"price": 5000, "base_buff": 10, "unit": "%", "type": "gamble_luck", "desc": "Tăng tỉ lệ thắng cược"},
-                "Yumeko": {"price": 12000, "base_buff": 7, "unit": "%", "type": "global_luck", "desc": "Tăng tỉ lệ thắng tất cả game"}
+                "Rodion": {"price": 5000, "base_buff": 10, "unit": "%", "type": "gamble_luck"},
+                "Yumeko": {"price": 12000, "base_buff": 7, "unit": "%", "type": "global_luck"}
             },
             "Special Buff ✨": {
-                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "type": "work_cd", "desc": "Giảm thời gian chờ lệnh"},
-                "Makima": {"price": 25000, "base_buff": 50, "unit": "%", "type": "penalty_reduction", "desc": "Giảm tiền phạt khi thất bại"}
+                "Faust": {"price": 15000, "base_buff": 20, "unit": "%", "type": "work_cd",
+                "Makima": {"price": 25000, "base_buff": 50, "unit": "%", "type": "penalty_reduction"}
             }
         }
         
@@ -188,11 +188,13 @@ class Waifu(commands.Cog):
 
         self.waifu_info = {
             "Mahiru": {
-                "desc": "Thiên sứ nhà bên đảm đang, dịu dàng.",
-                "image": "https://i.imgur.com/8nS8z4p.png" # Thay link ảnh thật của An vào
+                "desc": """Mahiru vô tội, dễ thương, tốt bụng và giàu tình yêu thương, với một la bàn đạo đức vững vàng và lòng hào phóng sâu sắc. Cô ấy rất dịu dàng và vị tha, luôn cố gắng giúp đỡ người khác khi cảm thấy an toàn để làm vậy.\n
+                Dù giữ thái độ dè dặt, đặc biệt khi nói về cha mẹ, cô tránh nói dối và thường trở nên kín đáo, hơi xa cách khi nhắc đến những tổn thương trong quá khứ.
+                Sự chân thành riêng tư của cô bộc lộ rõ hơn khi ở một mình, nhưng cô không bao giờ thể hiện điều đó một cách gay gắt.""",
+                "image": "https://media.tenor.com/rLKqg7FmVYwAAAAd/angel-tenshi.gif" # Thay link ảnh thật của An vào
             },
             "Don Quixote": {
-                "desc": "Hiệp sĩ nhiệt huyết từ Limbus Company.",
+                "desc": "h",
                 "image": "https://i.imgur.com/8nS8z4p.png"
             },
             "Ganyu": {
