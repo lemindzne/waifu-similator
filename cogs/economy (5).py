@@ -66,7 +66,7 @@ class JobSelect(discord.ui.Select):
             else:
                 # Không có waifu buff CD
                 total_wait_minutes = base_cd_min
-                bonus_display = "0%"
+                bonus_cd_display = "0%"
 
             # CẬP NHẬT MỐC THỜI GIAN MỚI (Đây là dòng quan trọng nhất)
             new_next_available = now + timedelta(minutes=total_wait_minutes)
