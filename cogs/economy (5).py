@@ -44,40 +44,11 @@ class JobSelect(discord.ui.Select):
                         ephemeral=False
                     )
 
-            waifu_cog = self.bot.get_cog("Waifu")
-            info = waifu_cog.get_waifu_info(active)
-            
-            # Lấy giá trị buff từ Dictionary (đã nhân với Level)
-            # calculate_bonus trả về con số thực tế (ví dụ: 5.0 hoặc 20.0)
-            cd_buff_val = waifu_cog.calculate_bonus(active, level, "work_cd")
-            
-            base_cd_min = job_info["cd"] * 60 # Chuyển giờ sang phút
-            
-            if info and info['unit'] == " phút":
-                # Trường hợp Ganyu: Trừ thẳng số phút
-                total_wait_minutes = max(1, base_cd_min - int(cd_buff_val))
-                bonus_cd_display = f"{int(cd_buff_val)}p"
-            elif info and info['unit'] == "%":
-                # Trường hợp Faust: Giảm theo tỷ lệ %
-                # Ví dụ: 20% thì nhân với (1 - 0.2)
-                reduction_percent = cd_buff_val / 100
-                total_wait_minutes = max(1, int(base_cd_min * (1 - reduction_percent)))
-                bonus_cd_display = f"{int(cd_buff_val)}%"
-            else:
-                # Không có waifu buff CD
-                total_wait_minutes = base_cd_min
-                bonus_cd_display = "0%"
+            income = random.randint(job_info["min"], job_info["max"])
+            total_wait_minutes = job_info["cd"] * 60
 
             # CẬP NHẬT MỐC THỜI GIAN MỚI (Đây là dòng quan trọng nhất)
             new_next_available = now + timedelta(minutes=total_wait_minutes)
-            
-            # Tính lương (Sử dụng luôn Dictionary cho đồng bộ)
-            money_mult = waifu_cog.calculate_bonus(active, level, "work_money")
-            income = int(random.randint(job_info["min"], job_info["max"]) * money_mult * (1 + level * 0.02))
-
-            # Tính mốc thời gian ĐƯỢC LÀM VIỆC TIẾP theo công việc vừa chọn
-            new_next_available = now + timedelta(minutes=total_wait_minutes)
-
             # 4. CẬP NHẬT DATABASE
             await self.bot.db.update_money(user_id, income)
             await self.bot.db.update_work_time(user_id, new_next_available.strftime('%Y-%m-%d %H:%M:%S'))
@@ -88,8 +59,7 @@ class JobSelect(discord.ui.Select):
             embed = discord.Embed(title="✅ Nhận việc thành công!", color=discord.Color.green())
             embed.add_field(name="Công việc", value=job_name)
             embed.add_field(name="Tiền lương", value=f"{income:,} xu")
-            embed.add_field(name="Thời gian nghỉ", value=f"{cd_text} (Đã giảm {bonus_cd_display})")
-            embed.set_footer(text=f"Đã áp dụng buff từ: {active if active else 'Không có'}")
+            embed.add_field(name="Countdown", value=f"<t:{cd_ts}:R>", inline=True)
 
             await interaction.response.edit_message(embed=embed, view=None)
         
@@ -171,10 +141,6 @@ class Economy(commands.Cog):
 
         # 3. Tỉ lệ thắng (Mặc định 50%, Rodion buff lên 60%)
         win_rate = 50
-        skill_text = ""
-        if active == "Rodion":
-            win_rate = 60
-            skill_text = "🎲 **Rodion:** 'Ván này chắc chắn thắng...' (Tỉ lệ thắng +10%)"
 
         # 4. Tung xu ngẫu nhiên
         result = "head" if random.randint(1, 100) <= win_rate else "tail"
@@ -212,7 +178,7 @@ class Economy(commands.Cog):
         if result == "head":
             final_embed.set_thumbnail(url="https://i.imgur.com/39A8n8M.png")
         else:
-            final_embed.set_thumbnail(url="https://i.imgur.com/L1S0F0p.png")
+            final_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1413489079714316428/1496860070951125113/Anh_man_hinh_2026-04-23_luc_20.07.00.png?ex=69eb6b13&is=69ea1993&hm=8ad98c801ad2712538eaf17313753fc73ff6648b87aaf340ab3c8a9e9b1570eb&")
 
         await msg.edit(embed=final_embed)
 
