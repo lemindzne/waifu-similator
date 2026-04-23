@@ -184,7 +184,7 @@ class Waifu(commands.Cog):
         # Nhóm Special Buff
         "Faust": "'Man errs, as long as he strives. 📖'",
         "Makima": "🐕 'Mọi thứ đều đang nằm trong tầm kiểm soát. Đừng lo lắng về những thất bại nhỏ nhặt.'"
-    }
+        }
 
         self.waifu_info = {
             "Mahiru": {
