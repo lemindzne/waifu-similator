@@ -4,7 +4,7 @@ import sys
 from discord.ext import commands
 
 class WaifuProfileView(discord.ui.View):
-    def __init__(self, bot, user_id, waifus):
+    def __init__(self, bot, user_id, waifus, waifu_info):
         super().__init__(timeout=60)
         self.bot = bot
         self.user_id = user_id
@@ -12,94 +12,72 @@ class WaifuProfileView(discord.ui.View):
         options = [
             discord.SelectOption(
                 label=f"{w['waifu_name']} (Lv {w['level']})", 
-                value=w['waifu_name']
+                value=w['waifu_name'],
+                emoji="🌸"
             ) for w in waifus
         ]
-        # ✅ FIX quan trọng: Truyền cả bot vào WaifuSelect
-        self.add_item(WaifuSelect(options, self.bot))
-
-    @discord.ui.button(label="Đặt làm waifu đại diện", style=discord.ButtonStyle.primary)
-    async def set_active(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Kiểm tra nếu chưa chọn waifu từ menu
-        if not interaction.message.embeds or " — " not in interaction.message.embeds[0].title:
-            return await interaction.response.send_message("❌ Vui lòng chọn một Waifu từ danh sách trước!", ephemeral=True)
-            
-        title = interaction.message.embeds[0].title
-        waifu_name = title.split(" — ")[1].replace(" ⭐", "")
         
-        # ✅ Dùng self.bot.db để lưu
-        await self.bot.db.set_active_waifu(interaction.user.id, waifu_name)
-        await interaction.response.send_message(f"✅ Đã đặt **{waifu_name}** làm Waifu đại diện!", ephemeral=True)
-
-    @discord.ui.button(label="Xem kĩ năng", style=discord.ButtonStyle.secondary)
-    async def view_skills(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.message.embeds or " — " not in interaction.message.embeds[0].title:
-            return await interaction.response.send_message("❌ Vui lòng chọn một Waifu để xem kỹ năng!", ephemeral=True)
-
-        title = interaction.message.embeds[0].title
-        waifu_name = title.split(" — ")[1].replace(" ⭐", "")
-        
-        # ✅ Lấy level từ database thông qua self.bot
-        _, _, _, level, _ = await self.bot.db.get_user_full(interaction.user.id)
-        
-        waifu_cog = self.bot.get_cog("Waifu")
-        target_info = None
-        for cat in waifu_cog.categories.values():
-            if waifu_name in cat:
-                target_info = cat[waifu_name]
-                break
-
-        if not target_info:
-            return await interaction.response.send_message("❌ Không tìm thấy thông tin kỹ năng!", ephemeral=True)
-
-        final_power = target_info['base_buff'] * (1 + (level - 1) * 0.2)
-        
-        embed = discord.Embed(title=f"⚔️ Kỹ năng: {waifu_name}", color=0x3498db)
-        embed.add_field(name="Hiệu quả hiện tại", value=f"**+{final_power:.1f}{target_info['unit']}**", inline=True)
-        embed.add_field(name="Cấp độ nhân vật", value=f"Lv.{level}", inline=True)
-        embed.add_field(name="Mô tả", value=target_info['desc'], inline=False)
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        # Ban đầu View chỉ có mỗi Select Menu
+        self.add_item(WaifuSelect(options, self.bot, waifu_info))
 
 class WaifuSelect(discord.ui.Select):
-    def __init__(self, options, bot):
-        super().__init__(placeholder="Chọn waifu để xem chi tiết", options=options)
-        self.bot = bot # Lưu bot để gọi database
+    def __init__(self, options, bot, waifu_info):
+        self.bot = bot
+        self.waifu_info = waifu_info
+        super().__init__(placeholder="Chọn Waifu để xem hồ sơ...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         waifu_name = self.values[0]
+        user_id = interaction.user.id
         
-        # Lấy data từ DB (Level và EXP)
-        waifu_data = await self.bot.db.get_waifu_data(interaction.user.id, waifu_name)
-        level = waifu_data['level'] if waifu_data else 1
-        exp = waifu_data['exp'] if waifu_data else 0
+        # 1. Lấy dữ liệu từ Database
+        data = await self.bot.db.get_waifu_data(user_id, waifu_name)
+        level = data['level']
+        exp = data['exp']
         
-        # Tạo thanh EXP
-        exp_map = {1: 1250, 2: 4000, 3: 10000}
-        current_max_exp = exp_map.get(level, 10000)
+        # 2. Lấy thông tin chi tiết
+        details = self.waifu_info.get(waifu_name, {"desc": "Chưa có mô tả.", "image": ""})
         
-        percent = min(int((exp / max_exp) * 10), 10) if level < 4 else 10
-        
-        exp_bar = "█" * percent + "░" * (10 - percent)
-        exp_text = f"{exp}/{current_max_exp} EXP" if level < 4 else "Đạt cấp tối đa"
+        # 3. Tạo Embed mới
+        embed = discord.Embed(
+            title=f"Thông tin — {waifu_name} ⭐",
+            description=details["desc"],
+            color=0xffc0cb
+        )
+        if details["image"]:
+            embed.set_image(url=details["image"])
+            
+        # Tính thanh EXP mốc 1250, 4500, 10000
+        exp_map = {1: 1250, 2: 4500, 3: 10000}
+        max_exp = exp_map.get(level, 10000)
+        percent = min(int((exp / max_exp) * 10), 10)
+        bar = "█" * percent + "░" * (10 - percent)
+        embed.add_field(name=f"🎖️ Cấp độ: {level}", value=f"{bar} ({exp}/{max_exp})", inline=False)
 
-        embed = discord.Embed(title=f"💕 Waifu — {waifu_name} ⭐", color=0xff99ff)
+        # 4. LOGIC HIỆN NÚT: Khi đã chọn waifu, ta tạo một View mới có chứa NÚT
+        # Chúng ta sẽ cập nhật lại View hiện tại
+        view = self.view
         
-        # Lấy ảnh từ Cog Waifu
-        waifu_cog = self.bot.get_cog("Waifu")
-        # Khai báo waifu_images trong class Waifu (bên dưới) để dòng này không lỗi
-        images = {
-            "Mahiru": "https://i.imgur.com/8nS8z4p.png", # Ví dụ ảnh
-            "Castorice": "https://i.imgur.com/8nS8z4p.png"
-        }
-        img_url = images.get(waifu_name, "https://i.imgur.com/8nS8z4p.png")
-        embed.set_thumbnail(url=img_url)
+        # Xóa tất cả item hiện có (bao gồm cả cái Select này) để sắp xếp lại
+        view.clear_items()
         
-        embed.add_field(name="💖 Kinh nghiệm (EXP)", value=f"`{exp_bar}`\n{exp_text}", inline=True)
-        embed.add_field(name="🎖️ Cấp độ", value=f"Level {level}", inline=True)
+        # Thêm lại chính cái Select này (để người dùng có thể chọn con khác)
+        view.add_item(self)
+        
+        # THÊM NÚT "ĐẶT LÀM ĐẠI DIỆN" (Nút này giờ mới xuất hiện)
+        # Chúng ta tạo nút trực tiếp ở đây
+        btn_active = discord.ui.Button(label="Đặt làm Waifu đại diện", style=discord.ButtonStyle.success, emoji="💖")
+        
+        # Định nghĩa hành động khi bấm nút
+        async def btn_callback(it: discord.Interaction):
+            await self.bot.db.set_active_waifu(it.user.id, waifu_name)
+            await it.response.send_message(f"✅ Đã đặt **{waifu_name}** làm người đồng hành!", ephemeral=True)
+            
+        btn_active.callback = btn_callback
+        view.add_item(btn_active)
 
-        # Quan trọng: Chỉ dùng edit_message
-        await interaction.response.edit_message(embed=embed)
+        # Cập nhật tin nhắn với Embed và View mới (đã có thêm nút)
+        await interaction.response.edit_message(embed=embed, view=view)
     
 
 class ShopDropdown(discord.ui.Select):
@@ -454,18 +432,20 @@ class Waifu(commands.Cog):
     @commands.command()
     async def waifu(self, ctx):
         user_id = ctx.author.id
-        waifus = await self.bot.db.get_all_waifus(user_id) # Lấy data từ DB
+        waifus = await self.bot.db.get_all_waifus(user_id)
 
         if not waifus:
             return await ctx.send("❌ Bạn chưa sở hữu Waifu nào!")
 
+        # Embed ban đầu: Rất đơn giản, không có ảnh
         embed = discord.Embed(
-            title="🎴 Danh sách waifu",
-            description="Chọn waifu để xem thông tin chi tiết.",
-            color=discord.Color.dark_grey()
+            title="🌸 Danh Sách Waifu", 
+            description="Vui lòng chọn một Waifu từ danh sách dưới đây để xem chi tiết.", 
+            color=0xffc0cb
         )
         
-        view = WaifuProfileView(self.bot, user_id, waifus)
+        # View ban đầu: Chỉ có Menu thả xuống, chưa có nút bấm
+        view = WaifuProfileView(self.bot, user_id, waifus, self.waifu_info)
         await ctx.send(embed=embed, view=view)
         
 async def setup(bot):
