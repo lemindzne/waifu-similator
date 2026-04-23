@@ -45,33 +45,35 @@ class JobSelect(discord.ui.Select):
                     )
 
             waifu_cog = self.bot.get_cog("Waifu")
-            
-            # 1. Lấy dữ liệu Waifu từ Dictionary
             info = waifu_cog.get_waifu_info(active)
-            # Gọi hàm tính toán bonus (đã bao gồm level)
-            cd_val = waifu_cog.calculate_bonus(active, level, "work_cd")
             
-            base_cd_min = job_info["cd"] * 60
-            bonus_display = "0%" # Mặc định hiển thị
-
-            if info:
-                if info['unit'] == " phút":
-                    # Trường hợp như Ganyu: Trừ thẳng số phút
-                    total_wait_minutes = max(1, int(base_cd_min - cd_val))
-                    bonus_display = f"{int(cd_val)}p"
-                else:
-                    # Trường hợp như Faust: Giảm theo %
-                    # cd_val lúc này là con số như 20, 25...
-                    total_wait_minutes = int(base_cd_min * (1 - (cd_val / 100)))
-                    bonus_display = f"{int(cd_val)}%"
+            # Lấy giá trị buff từ Dictionary (đã nhân với Level)
+            # calculate_bonus trả về con số thực tế (ví dụ: 5.0 hoặc 20.0)
+            cd_buff_val = waifu_cog.calculate_bonus(active, level, "work_cd")
+            
+            base_cd_min = job_info["cd"] * 60 # Chuyển giờ sang phút
+            
+            if info and info['unit'] == " phút":
+                # Trường hợp Ganyu: Trừ thẳng số phút
+                total_wait_minutes = max(1, base_cd_min - int(cd_buff_val))
+                bonus_display = f"{int(cd_buff_val)}p"
+            elif info and info['unit'] == "%":
+                # Trường hợp Faust: Giảm theo tỷ lệ %
+                # Ví dụ: 20% thì nhân với (1 - 0.2)
+                reduction_percent = cd_buff_val / 100
+                total_wait_minutes = max(1, int(base_cd_min * (1 - reduction_percent)))
+                bonus_display = f"{int(cd_buff_val)}%"
             else:
-                # Không có waifu hoặc không có buff CD
+                # Không có waifu buff CD
                 total_wait_minutes = base_cd_min
+                bonus_display = "0%"
+
+            # CẬP NHẬT MỐC THỜI GIAN MỚI (Đây là dòng quan trọng nhất)
+            new_next_available = now + timedelta(minutes=total_wait_minutes)
             
-            # 2. Tính lương (Cũng dùng Dictionary luôn cho đồng bộ)
+            # Tính lương (Sử dụng luôn Dictionary cho đồng bộ)
             money_mult = waifu_cog.calculate_bonus(active, level, "work_money")
-            level_bonus = 1 + (level * 0.02)
-            income = int(random.randint(job_info["min"], job_info["max"]) * money_mult * level_bonus)
+            income = int(random.randint(job_info["min"], job_info["max"]) * money_mult * (1 + level * 0.02))
 
             # Tính mốc thời gian ĐƯỢC LÀM VIỆC TIẾP theo công việc vừa chọn
             new_next_available = now + timedelta(minutes=total_wait_minutes)
