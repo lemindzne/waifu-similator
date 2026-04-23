@@ -318,36 +318,6 @@ class Waifu(commands.Cog):
         
         embed.set_footer(text="Dùng !waifu để xem danh sách Waifu của bạn!")
         await ctx.send(embed=embed)
-
-    @commands.command()
-    async def usewaifu(self, ctx, *, name: str):
-        user_id = ctx.author.id
-        inv = await self.bot.db.get_inventory(user_id)
-
-        # Tìm waifu trong túi đồ
-        target = None
-        for waifu in inv:
-            if name.lower() in waifu.lower():
-                target = waifu
-                break
-
-        if not target:
-            return await ctx.send("❌ Bạn không sở hữu waifu này!")
-
-        # Cập nhật database
-        await self.bot.db.set_active_waifu(user_id, target)
-
-        # Lấy câu thoại từ từ điển (nếu không có thì dùng câu mặc định)
-        response = self.active_responses.get(target, "Đã chọn làm bạn đồng hành!")
-
-        embed = discord.Embed(
-            title="✨ Kích Hoạt Kỹ Năng",
-            description=f"Bạn đã chọn **{target}** làm trợ thủ đắc lực!",
-            color=discord.Color.green()
-        )
-        # Thêm câu thoại vào Embed
-        embed.add_field(name="description:", value=f"*{response}*", inline=False)
-        await ctx.send(embed=embed)
         
     @commands.command(name="buyitem")
     async def buyitem(self, ctx, item_name: str = None, amount: int = 1):
