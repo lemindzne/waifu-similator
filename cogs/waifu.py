@@ -6,7 +6,7 @@ from discord.ext import commands
 
 class WaifuProfileView(discord.ui.View):
     def __init__(self, bot, user_id, waifus, waifu_info):
-        super().__init__(timeout=60)
+        super().__init__(timeout=None)
         self.bot = bot
         self.user_id = user_id
         
