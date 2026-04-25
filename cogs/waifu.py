@@ -128,7 +128,7 @@ class ShopView(discord.ui.View):
         embed = discord.Embed(title="🛒 Cửa hàng Waifu", color=discord.Color.pink())
         for cat, content in self.categories.items():
             for name, info in content.items():
-                embed.add_field(name=f"{name} — {info['price']:,} xu", inline=False)
+                embed.add_field(name=f"{name} — {info['price']:,} xu", value=f"", inline=False)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Shop Vật phẩm 🎁", style=discord.ButtonStyle.success)
