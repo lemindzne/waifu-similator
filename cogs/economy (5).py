@@ -40,7 +40,7 @@ class JobSelect(discord.ui.Select):
                     hours, remainder = divmod(int(wait_time.total_seconds()), 3600)
                     minutes, seconds = divmod(remainder, 60)
                     return await interaction.response.send_message(
-                        f"⏳ Bạn đang trong thời gian nghỉ! Hãy nghỉ thêm **{hours}h {minutes}m {seconds}s** nữa để làm việc             tiếp.", 
+                        f"⏳ Bạn đang trong thời gian nghỉ! Hãy nghỉ thêm **{hours}h {minutes}m {seconds}s** nữa để làm việc tiếp.", 
                         ephemeral=False
                     )
 
@@ -104,6 +104,8 @@ class Economy(commands.Cog):
         
     @commands.command()
     async def work(self, ctx):
+        cd_ts = "0 phút"
+        
         try:
             data = await self.bot.db.get_user_full(ctx.author.id)
             active = data[1]
