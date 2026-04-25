@@ -185,7 +185,7 @@ class Economy(commands.Cog):
         else:
             await self.bot.db.update_money(ctx.author.id, -bet)
             color = discord.Color.red()
-            title = "💀 Oánh Ngu Như Lợn "
+            title = "💀 Đánh Ngu Như Lợn "
             desc = f"Kết quả là: **{result.upper()}**\nBạn đã mất **-{bet:,} xu**."
 
         # Cập nhật Embed kết quả cuối cùng
@@ -196,7 +196,7 @@ class Economy(commands.Cog):
         if result == "head":
             final_embed.set_thumbnail(url="https://i.imgur.com/39A8n8M.png")
         else:
-            final_embed.set_thumbnail(url="https://i.imgur.com/L1S0F0p.png")
+            final_embed.set_thumbnail(url="https://cdn.discordapp.com/attachments/1413489079714316428/1496860070951125113/Anh_man_hinh_2026-04-23_luc_20.07.00.png?ex=69ed6553&is=69ec13d3&hm=9b1e650c9b879ce549b43418cfe44b3456bcd051be9c1dbca343696582d921a9&")
 
         await msg.edit(embed=final_embed)
 
