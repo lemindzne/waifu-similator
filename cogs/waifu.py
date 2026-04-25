@@ -28,58 +28,63 @@ class WaifuSelect(discord.ui.Select):
         super().__init__(placeholder="Chọn Waifu để xem hồ sơ...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
-        waifu_name = self.values[0]
-        user_id = interaction.user.id
-        
-        # 1. Lấy dữ liệu từ Database
-        data = await self.bot.db.get_waifu_data(user_id, waifu_name)
-        level = data['level']
-        exp = data['exp']
-        
-        # 2. Lấy thông tin chi tiết
-        details = self.waifu_info.get(waifu_name, {"desc": "Chưa có mô tả.", "image": ""})
-        
-        # 3. Tạo Embed mới
-        embed = discord.Embed(
-            title=f"Thông tin — {waifu_name} ⭐",
-            description=details["desc"],
-            color=0xffc0cb
-        )
-        if details["image"]:
-            embed.set_image(url=details["image"])
+        try:
+            waifu_name = self.values[0]
+            user_id = interaction.user.id
             
-        # Tính thanh EXP mốc 1250, 4500, 10000
-        exp_map = {1: 1250, 2: 4500, 3: 10000}
-        max_exp = exp_map.get(level, 10000)
-        percent = min(int((exp / max_exp) * 10), 10)
-        bar = "█" * percent + "░" * (10 - percent)
-        embed.add_field(name=f"🎖️ Cấp độ: {level}", value=f"{bar} ({exp}/{max_exp})", inline=False)
-
-        # 4. LOGIC HIỆN NÚT: Khi đã chọn waifu, ta tạo một View mới có chứa NÚT
-        # Chúng ta sẽ cập nhật lại View hiện tại
-        view = self.view
-        
-        # Xóa tất cả item hiện có (bao gồm cả cái Select này) để sắp xếp lại
-        view.clear_items()
-        
-        # Thêm lại chính cái Select này (để người dùng có thể chọn con khác)
-        view.add_item(self)
-        
-        # THÊM NÚT "ĐẶT LÀM ĐẠI DIỆN" (Nút này giờ mới xuất hiện)
-        # Chúng ta tạo nút trực tiếp ở đây
-        btn_active = discord.ui.Button(label="Đặt làm Waifu đại diện", style=discord.ButtonStyle.success, emoji="💖")
-        
-        # Định nghĩa hành động khi bấm nút
-        async def btn_callback(it: discord.Interaction):
-            await self.bot.db.set_active_waifu(it.user.id, waifu_name)
-            await it.response.send_message(f"✅ Đã đặt **{waifu_name}** làm người đồng hành!", ephemeral=True)
+            # 1. Lấy dữ liệu từ Database
+            data = await self.bot.db.get_waifu_data(user_id, waifu_name)
+            level = data['level']
+            exp = data['exp']
             
-        btn_active.callback = btn_callback
-        view.add_item(btn_active)
-
-        # Cập nhật tin nhắn với Embed và View mới (đã có thêm nút)
-        await interaction.response.edit_message(embed=embed, view=view)
+            # 2. Lấy thông tin chi tiết
+            details = self.waifu_info.get(waifu_name, {"desc": "Chưa có mô tả.", "image": ""})
+            
+            # 3. Tạo Embed mới
+            embed = discord.Embed(
+                title=f"Thông tin — {waifu_name} ⭐",
+                description=details["desc"],
+                color=0xffc0cb
+            )
+            if details["image"]:
+                embed.set_image(url=details["image"])
+                
+            # Tính thanh EXP mốc 1250, 4500, 10000
+            exp_map = {1: 1250, 2: 4500, 3: 10000}
+            max_exp = exp_map.get(level, 10000)
+            percent = min(int((exp / max_exp) * 10), 10)
+            bar = "█" * percent + "░" * (10 - percent)
+            embed.add_field(name=f"🎖️ Cấp độ: {level}", value=f"{bar} ({exp}/{max_exp})", inline=False)
     
+            # 4. LOGIC HIỆN NÚT: Khi đã chọn waifu, ta tạo một View mới có chứa NÚT
+            # Chúng ta sẽ cập nhật lại View hiện tại
+            view = self.view
+            
+            # Xóa tất cả item hiện có (bao gồm cả cái Select này) để sắp xếp lại
+            view.clear_items()
+            
+            # Thêm lại chính cái Select này (để người dùng có thể chọn con khác)
+            view.add_item(self)
+            
+            # THÊM NÚT "ĐẶT LÀM ĐẠI DIỆN" (Nút này giờ mới xuất hiện)
+            # Chúng ta tạo nút trực tiếp ở đây
+            btn_active = discord.ui.Button(label="Đặt làm Waifu đại diện", style=discord.ButtonStyle.success, emoji="💖")
+            
+            # Định nghĩa hành động khi bấm nút
+            async def btn_callback(it: discord.Interaction):
+                await self.bot.db.set_active_waifu(it.user.id, waifu_name)
+                await it.response.send_message(f"✅ Đã đặt **{waifu_name}** làm người đồng hành!", ephemeral=True)
+                
+            btn_active.callback = btn_callback
+            view.add_item(btn_active)
+    
+            # Cập nhật tin nhắn với Embed và View mới (đã có thêm nút)
+            await interaction.response.edit_message(embed=embed, view=view)
+        
+        except Exception as e:
+            print(f"Lỗi rồi An ơi: {e}")
+            traceback.print_exc() # In chi tiết lỗi ra màn hình console
+            await interaction.response.send_message(f"Có lỗi xảy ra: {e}", ephemeral=True)
 
 class ShopDropdown(discord.ui.Select):
     def __init__(self, categories):
