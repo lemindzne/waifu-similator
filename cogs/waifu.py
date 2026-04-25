@@ -172,8 +172,8 @@ class Waifu(commands.Cog):
             },
             "Đá Cường Hóa": {
                 "price": 5000, 
-                "desc": "Vật phẩm quý hiếm dùng để nâng cấp bậc Skill `id: stone`.",
-                "exp_gain": 0
+                "desc": "Tăng 750 EXP cho Waifu đang chọn `id: stone`.",
+                "exp_gain": 750
             }
         }
         
