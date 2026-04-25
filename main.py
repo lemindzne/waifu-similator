@@ -3,9 +3,14 @@ import os
 import asyncio
 import traceback
 import sys
+import logging
 from dotenv import load_dotenv
 from discord.ext import commands
 from database import BotDatabase
+
+# Cấu hình logging để hiện lỗi trên Railway Console
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('discord')
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
